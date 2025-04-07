@@ -1,3 +1,2 @@
 *node_modules/*
-./mito-2e978-firebase-adminsdk-fbsvc-a214db1a48.json
-./testapplication-3b8c2-firebase-adminsdk-fbsvc-c9d4c90188.json
+"*.json"
