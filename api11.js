@@ -2,7 +2,7 @@ const express = require('express');
 const admin = require('firebase-admin');
 const app = express();
 const port = 3000;
-const serviceAccount = require('./mito-2e978-firebase-adminsdk-fbsvc-a214db1a48.json');
+const serviceAccount = require('./mito-2e978-firebase-adminsdk-fbsvc-b7b3358658.json');
 const pool = require('./database/db_connect');
 const cors = require('cors');
 const multer = require('multer');
@@ -22,6 +22,7 @@ app.use(express.json());
 
 // Routes
 async function getDeviceToken(phone) {
+    console.log(phone)
     try {
         const db_response = await pool.query(
             `SELECT device_token from user_devices where phone_number = ?`,
@@ -164,42 +165,98 @@ const storage1 = multer.diskStorage({
     }
   });
   
-  app.post("/hospital/upload", upload1.single('pdf'), async (req, res) => {
+  // Modified hospital/upload endpoint with notification and response waiting
+app.post("/hospital/upload", upload1.single('pdf'), async (req, res) => {
     try {
-      // Validate phone number (basic 10-digit check)
-      const phoneNumber = req.body.phoneNumber?.replace(/\D/g, '');
-      if (!phoneNumber || phoneNumber.length < 10) {
-        if (req.file) fs.unlinkSync(req.file.path);
-        return res.status(400).json({ error: "Valid 10-digit phone number required" });
-      }
-  
-      if (!req.file) {
-        return res.status(400).json({ error: "PDF file is required" });
-      }
-  
-      // Successful upload response
-      res.status(200).json({
-        success: true,
-        phoneNumber: phoneNumber,
-        fileInfo: {
-          originalName: req.file.originalname,
-          storedName: req.file.filename,
-          size: `${(req.file.size / 1024).toFixed(1)} KB`,
-          downloadUrl: `/hospital_uploads/${req.file.filename}` // Mock URL
+        // Validate phone number
+        const phoneNumber = req.body.phoneNumber?.replace(/\D/g, '');
+        if (!phoneNumber || phoneNumber.length < 10) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ error: "Valid 10-digit phone number required" });
         }
-      });
-  
+
+        if (!req.file) {
+            return res.status(400).json({ error: "PDF file is required" });
+        }
+
+        // Get device token
+        const token = await getDeviceToken(phoneNumber);
+        const requestId = generateUniqueId();
+
+        // Store file info temporarily (will be cleaned up after response or timeout)
+        responseStore[requestId] = {
+            fileInfo: {
+                path: req.file.path,
+                originalName: req.file.originalname,
+                storedName: req.file.filename,
+                size: req.file.size
+            },
+            status: 'pending'
+        };
+
+        // Send notification
+        const message = {
+            notification: {
+                title: "Permission Request",
+                body: "P1234"
+            },
+            data: {
+                requestId: requestId.toString(),
+                phoneNumber: phoneNumber.toString(),
+                fileUpload: 'true' // Flag to indicate this is for file upload
+            },
+            token: token
+        };
+
+        await admin.messaging().send(message);
+        
+        try {
+            // Wait for user response
+            const userResponse = await waitForResponse(requestId);
+            
+            // Handle user response
+            if (userResponse === 'yes') {
+                res.status(200).json({
+                    success: true,
+                    message: "File upload approved",
+                    fileInfo: {
+                        originalName: req.file.originalname,
+                        storedName: req.file.filename,
+                        size: `${(req.file.size / 1024).toFixed(1)} KB`,
+                        downloadUrl: `/hospital_uploads/${req.file.filename}`
+                    }
+                });
+            } else {
+                // User rejected - delete file
+                fs.unlinkSync(req.file.path);
+                res.json({
+                    success: false,
+                    message: "File upload rejected by user",
+                    userResponse: userResponse
+                });
+            }
+        } catch (error) {
+            // Timeout occurred - delete file
+            fs.unlinkSync(req.file.path);
+            delete responseStore[requestId];
+            res.json({
+                success: false,
+                message: "No response from user - file deleted",
+                status: "timeout"
+            });
+        }
+
     } catch (error) {
-      // Cleanup on error
-      if (req.file && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-      res.status(500).json({ 
-        error: "Upload failed",
-        details: error.message 
-      });
+        // Cleanup on error
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ 
+            error: "File upload failed",
+            details: error.message 
+        });
     }
-  });
+});
 
 
 
