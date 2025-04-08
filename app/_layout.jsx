@@ -6,9 +6,11 @@ export default function RootLayout() {
     <UserProvider>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="signup/set-pin" options={{ title: 'Set PIN' }} />
-        {/* Other screens */}
+        <Stack.Screen name="home" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="signup" options={{ headerShown: false }} />
       </Stack>
     </UserProvider>
   );
 }
+

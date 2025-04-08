@@ -1,24 +1,31 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useUser } from '../context/UserContext'; // Add this import
 
 export default function OtpVerificationScreen() {
   const [otp, setOtp] = useState('');
   const { phoneNumber } = useLocalSearchParams();
   const router = useRouter();
+  const { login } = useUser(); // Move this outside the handleVerify function
 
   const handleVerify = () => {
     if (otp.length !== 6) {
       Alert.alert('Invalid OTP', 'Please enter the 6-digit code');
       return;
-    } else if (otp === "123456") {  // Fixed: Added closing brace and strict comparison
-      Alert.alert('Success', 'Phone number verified');
-      router.push('/home');
+    }
+
+    if (otp === "123456") {  // In production, verify against your backend
+      login({
+        phoneNumber,
+        isVerified: true,
+        name: 'User' // Add default name or get from your signup flow
+      });
+      router.replace('/home');
     } else {
       Alert.alert('Invalid OTP', 'The code you entered is incorrect');
     }
   };
-  
 
   return (
     <View style={styles.container}>
@@ -27,7 +34,7 @@ export default function OtpVerificationScreen() {
       
       <TextInput
         style={styles.input}
-        placeholder="Enter OTP "
+        placeholder="Enter OTP"
         placeholderTextColor="#999"
         keyboardType="number-pad"
         value={otp}
@@ -53,6 +60,8 @@ export default function OtpVerificationScreen() {
     </View>
   );
 }
+
+// ... keep your existing styles ...
 
 
 

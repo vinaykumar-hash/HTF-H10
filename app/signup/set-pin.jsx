@@ -1,16 +1,17 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 import { useUser } from '../context/UserContext'; 
 
 export default function SetPinScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { setUser } = useUser();
+  const { login } = useUser();
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
   const handleSubmit = () => {
+    // Validation checks
     if (pin.length !== 6 || confirmPin.length !== 6) {
       Alert.alert('Invalid PIN', 'PIN must be 6 digits');
       return;
@@ -24,12 +25,12 @@ export default function SetPinScreen() {
     // Combine all user data with PIN
     const completeUserData = {
       ...params,
-      pin: pin, // Store hashed PIN in production
+      pin: pin, // In production, you should hash this!
       isPinSet: true
     };
     console.log(completeUserData)
     // Save user and redirect to home
-    setUser(completeUserData);
+    login(completeUserData);
     router.replace('/home');
   };
 
@@ -41,6 +42,7 @@ export default function SetPinScreen() {
       <TextInput
         style={styles.input}
         placeholder="Enter 6-digit PIN"
+        placeholderTextColor="#999"
         keyboardType="number-pad"
         secureTextEntry
         maxLength={6}
@@ -51,6 +53,7 @@ export default function SetPinScreen() {
       <TextInput
         style={styles.input}
         placeholder="Confirm 6-digit PIN"
+        placeholderTextColor="#999"
         keyboardType="number-pad"
         secureTextEntry
         maxLength={6}
@@ -59,7 +62,7 @@ export default function SetPinScreen() {
       />
 
       <TouchableOpacity 
-        style={styles.button}
+        style={[styles.button, (pin.length !== 6 || confirmPin.length !== 6) && { opacity: 0.5 }]}
         onPress={handleSubmit}
         disabled={pin.length !== 6 || confirmPin.length !== 6}
       >
