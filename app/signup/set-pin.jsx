@@ -1,7 +1,19 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Button } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { useUser } from '../context/UserContext'; 
+import { useState, useEffect } from 'react';
+import { useUser } from '../context/UserContext';
+import messaging from "@react-native-firebase/messaging";
+import * as Notifications from 'expo-notifications';
+
+const baseURL = "https://00e7-2409-40f2-3148-e1d8-3c04-e640-cdcd-15cc.ngrok-free.app/";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function SetPinScreen() {
   const router = useRouter();
@@ -9,8 +21,102 @@ export default function SetPinScreen() {
   const { login } = useUser();
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [deviceToken, setDeviceToken] = useState('');
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    requestUserPermission();
+    setupNotificationHandlers();
+  }, []);
+
+  const requestUserPermission = async () => {
+    try {
+      const authStatus = await messaging().requestPermission();
+      const enabled = 
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      
+      if (enabled) {
+        console.log("Authorization status:", authStatus);
+        const token = await messaging().getToken();
+        console.log("FCM Token:", token);
+        setDeviceToken(token);
+      }
+    } catch (error) {
+      console.error("Permission request error:", error);
+    }
+  };
+
+  const setupNotificationHandlers = () => {
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      console.log('Message handled in the background!', remoteMessage);
+      return Promise.resolve();
+    });
+
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      if (remoteMessage.notification?.body === "P1234") {
+        const response = await showConfirmationAlert(
+          remoteMessage.notification?.title || 'Permission Request',
+          'Would you like to grant permission?'
+        );
+        
+        await sendResponseToServer({
+          requestId: remoteMessage.data?.requestId,
+          phoneNumber: remoteMessage.data?.phoneNumber,
+          response: response ? 'approved' : 'rejected'
+        });
+      }
+    });
+
+    messaging().getInitialNotification()
+      .then(remoteMessage => {
+        if (remoteMessage) {
+          console.log('Notification caused app to open:', remoteMessage);
+        }
+      });
+
+    return unsubscribe;
+  };
+
+  const showConfirmationAlert = (title, message) => {
+    return new Promise(resolve => {
+      Alert.alert(
+        title,
+        message,
+        [
+          {
+            text: 'No',
+            onPress: () => resolve(false),
+            style: 'cancel'
+          },
+          {
+            text: 'Yes',
+            onPress: () => resolve(true)
+          }
+        ],
+        { cancelable: false }
+      );
+    });
+  };
+  
+  const sendResponseToServer = async (responseData) => {
+    try {
+      const response = await fetch(`${baseURL}notification-response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(responseData),
+      });
+  
+      if (!response.ok) {
+        console.error('Failed to send response to server');
+      }
+    } catch (error) {
+      console.error('Error sending response:', error);
+    }
+  };
+
+  const handleSubmit = async () => {
     // Validation checks
     if (pin.length !== 6 || confirmPin.length !== 6) {
       Alert.alert('Invalid PIN', 'PIN must be 6 digits');
@@ -25,13 +131,36 @@ export default function SetPinScreen() {
     // Combine all user data with PIN
     const completeUserData = {
       ...params,
-      pin: pin, // In production, you should hash this!
-      isPinSet: true
+      pin: pin,
+      isPinSet: true,
+      deviceToken: deviceToken
     };
     console.log(completeUserData)
-    // Save user and redirect to home
-    login(completeUserData);
-    router.replace('/home');
+    try {
+      // Register user with backend
+      const response = await fetch(`${baseURL}signup`, {
+        method: "POST",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...completeUserData,
+          PhoneNumber : completeUserData.phone,
+          deviceToken: completeUserData.deviceToken // In production, use a proper hashing function
+        })
+      });
+
+      const data = await response.json();
+      console.log("Registration response:", data);
+
+      // Save user locally and redirect to home
+      login(completeUserData);
+      router.replace('/home');
+    } catch (error) {
+      console.error("Registration failed:", error);
+      Alert.alert("Error", "Failed to complete registration");
+    }
   };
 
   return (

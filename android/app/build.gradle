@@ -174,3 +174,7 @@ dependencies {
         implementation jscFlavor
     }
 }
+// android/build.gradle
+
+
+apply plugin: 'com.google.gms.google-services'

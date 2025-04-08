@@ -26,6 +26,7 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
         <data android:scheme="com.anonymous.savy"/>
+        <data android:scheme="exp+savy"/>
       </intent-filter>
     </activity>
   </application>

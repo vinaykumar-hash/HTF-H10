@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  SafeAreaView 
+} from 'react-native';
 import { MaterialIcons, FontAwesome, Feather } from '@expo/vector-icons';
 
 const HomeScreen = () => {
@@ -46,7 +53,7 @@ const HomeScreen = () => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Uploads</Text>
             <TouchableOpacity>
-            <Text style={styles.viewAll}>View All &gt;</Text>
+              <Text style={styles.viewAll}>View All &gt;</Text>
             </TouchableOpacity>
           </View>
 
@@ -86,6 +93,7 @@ const HomeScreen = () => {
   );
 };
 
+// Make sure this is properly defined as StyleSheet.create
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -93,7 +101,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 20,
-    paddingBottom: 80, // Space for bottom nav
+    paddingBottom: 80,
   },
   header: {
     flexDirection: 'row',

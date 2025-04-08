@@ -1,10 +1,8 @@
 import React, { createContext, useState, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 1. Create the context
 const UserContext = createContext();
 
-// 2. Create the provider component
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
@@ -25,11 +23,4 @@ export const UserProvider = ({ children }) => {
   );
 };
 
-// 3. Create and export the hook
-export const useUser = () => {
-  const context = useContext(UserContext);
-  if (!context) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
-};
+export const useUser = () => useContext(UserContext);
