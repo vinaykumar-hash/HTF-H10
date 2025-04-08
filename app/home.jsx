@@ -8,6 +8,7 @@ import {
   SafeAreaView 
 } from 'react-native';
 import { MaterialIcons, FontAwesome, Feather } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 
 const HomeScreen = () => {
   return (
@@ -27,15 +28,23 @@ const HomeScreen = () => {
 
         {/* Quick Actions Grid */}
         <View style={styles.actionsGrid}>
-          <TouchableOpacity style={styles.actionCard}>
-            <MaterialIcons name="cloud-upload" size={28} color="#4fc3f7" />
-            <Text style={styles.actionTitle}>Upload Record</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard}>
-            <FontAwesome name="folder-open" size={24} color="#4fc3f7" />
-            <Text style={styles.actionTitle}>My Records</Text>
-          </TouchableOpacity>
+
+
+
+        <Link href="/records" asChild><TouchableOpacity style={styles.actionCard}>
+    <FontAwesome name="folder-open" size={24} color="#4fc3f7" />
+    <Text style={styles.actionTitle}>My Records</Text>
+  </TouchableOpacity></Link>  
+
+{/* 
+          <Link href=".///(tabs)/records" asChild>
+  <TouchableOpacity style={styles.actionCard}>
+    <FontAwesome name="folder-open" size={24} color="#4fc3f7" />
+    <Text style={styles.actionTitle}>My Records</Text>
+  </TouchableOpacity>
+</Link> */}
+
 
           <TouchableOpacity style={styles.actionCard}>
             <MaterialIcons name="lock-open" size={28} color="#4fc3f7" />
@@ -74,10 +83,11 @@ const HomeScreen = () => {
           <Text style={styles.navTextActive}>Home</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="insert-drive-file" size={24} color="#999" />
-          <Text style={styles.navText}>Records</Text>
-        </TouchableOpacity>
+        // In bottom navigation, keep it simple:
+<TouchableOpacity style={styles.navItem}>
+  <MaterialIcons name="insert-drive-file" size={24} color="#999" />
+  <Text style={styles.navText}>Records</Text>
+</TouchableOpacity>
         
         <TouchableOpacity style={styles.navItem}>
           <MaterialIcons name="cloud-upload" size={24} color="#999" />

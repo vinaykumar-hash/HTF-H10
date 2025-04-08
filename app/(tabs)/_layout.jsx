@@ -1,36 +1,28 @@
-import { View, Text } from 'react-native'
 import { Tabs } from 'expo-router';
-import React from 'react'
-
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{
-        headerShown:false
-    }}
-    >
-        <Tabs.Screen name='index'
-         options={{
-            tabBarLabel:'Home',
-            tabBarIcon:({color,size})=>(
-                <FontAwesome name="home" size={24} color="color" />
-            )
-          }} />
-        <Tabs.Screen name='profile'
+    <Tabs>
+      <Tabs.Screen
+        name="index"  // This should point to home.jsx
         options={{
-            tabBarLabel:'profile',
-            tabBarIcon:({color,size})=>(
-                <FontAwesome name="user-circle" size={24} color="black" />
-            )
-          }}/>
-        <Tabs.Screen name='AddNew'
+          title: 'Home',
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="home" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="records/index"  // Points to records screen
         options={{
-            tabBarLabel:'AddNew',
-            tabBarIcon:({color,size})=>(
-                <FontAwesome name="plus-square" size={size} color="color" />
-            )
-          }}/>
+          title: 'Records',
+          tabBarIcon: ({ color }) => (
+            <FontAwesome name="folder-open" size={24} color={color} />
+          ),
+        }}
+      />
     </Tabs>
-  )
+  );
 }
+   
