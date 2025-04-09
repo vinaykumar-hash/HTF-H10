@@ -18,7 +18,7 @@ const HomeScreen = () => {
         <View style={styles.header}>
           <Text style={styles.logo}>Mito</Text>
           <View style={styles.userInfo}>
-            <Text style={styles.welcome}>Welcome, John</Text>
+            <Text style={styles.welcome}>Welcome, Arya</Text>
             <View style={styles.statusBadge}>
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>Your health vault is secure and up-to-date</Text>
@@ -30,20 +30,32 @@ const HomeScreen = () => {
         <View style={styles.actionsGrid}>
 
 
+ 
 
-
-        <Link href="/records" asChild><TouchableOpacity style={styles.actionCard}>
-    <FontAwesome name="folder-open" size={24} color="#4fc3f7" />
-    <Text style={styles.actionTitle}>My Records</Text>
-  </TouchableOpacity></Link>  
-
-{/* 
-          <Link href=".///(tabs)/records" asChild>
+        {/* <Link href="/records" asChild>
   <TouchableOpacity style={styles.actionCard}>
     <FontAwesome name="folder-open" size={24} color="#4fc3f7" />
     <Text style={styles.actionTitle}>My Records</Text>
   </TouchableOpacity>
 </Link> */}
+
+
+          <Link href=".///(tabs)/records" asChild>
+  <TouchableOpacity style={styles.actionCard}>
+    <FontAwesome name="folder-open" size={24} color="#4fc3f7" />
+    <Text style={styles.actionTitle}>My Records</Text>
+  </TouchableOpacity>
+</Link>
+
+
+ <Link href="/emergency" asChild>
+  <TouchableOpacity style={styles.actionCard}>
+    <FontAwesome name="exclamation-triangle" size={24} color="#ef4444" />
+    <Text style={styles.actionTitle}>Emergency</Text>
+  </TouchableOpacity>
+</Link> 
+
+
 
 
           <TouchableOpacity style={styles.actionCard}>
@@ -89,10 +101,12 @@ const HomeScreen = () => {
   <Text style={styles.navText}>Records</Text>
 </TouchableOpacity>
         
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="cloud-upload" size={24} color="#999" />
-          <Text style={styles.navText}>Upload</Text>
-        </TouchableOpacity>
+<Link href="/uploadRecord" asChild>
+  <TouchableOpacity style={styles.navItem}>
+    <MaterialIcons name="cloud-upload" size={24} color="#999" />
+    <Text style={styles.navText}>Upload</Text>
+  </TouchableOpacity>
+</Link>
         
         <TouchableOpacity style={styles.navItem}>
           <MaterialIcons name="person" size={24} color="#999" />

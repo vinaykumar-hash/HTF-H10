@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Button } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { useUser } from '../context/UserContext';
+import { useUser } from '../../context/UserContext';
 import messaging from "@react-native-firebase/messaging";
 import * as Notifications from 'expo-notifications';
 

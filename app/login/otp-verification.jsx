@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useUser } from '../context/UserContext'; // Add this import
+import { useUser } from '../../context/UserContext';
+// Add this import
 
 export default function OtpVerificationScreen() {
   const [otp, setOtp] = useState('');
