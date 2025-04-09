@@ -2,69 +2,12 @@ const express = require('express');
 const admin = require('firebase-admin');
 const app = express();
 const port = 3000;
-const serviceAccount = require('./mito-42b72-firebase-adminsdk-fbsvc-254edc9def.json');
+const serviceAccount = require('./mito-42b72-firebase-adminsdk-fbsvc-319bc5a2df.json');
 const pool = require('./database/db_connect');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-// Replace your Web3 initialization with:
-const Web3 = require('web3');
-const web3 = new Web3('http://127.0.0.1:7545');
-
-// Manually specify the ABI for uploadRecord only
-const contractABI = [{
-  "constant": false,
-  "inputs": [{"name": "ipfsHash", "type": "string"}],
-  "name": "uploadRecord",
-  "outputs": [],
-  "payable": false,
-  "stateMutability": "nonpayable",
-  "type": "function"
-}];
-
-const MedicalJSON = require('./contracts/Medical.json');
-const contractAddress = "0x6A6e4EcE25d4C78F7995467B9dE32A1a2493FA60";
-const healthRecords = new web3.eth.Contract(contractABI, contractAddress);
-const contract = new web3.eth.Contract(
-    MedicalJSON.abi, // From build/contracts/Medical.json
-    "0x4FB202d3De900D6f1d68ea938C9Af7CBdf924A08" // From migration output
-  );
-  
-  
-// Initialize Web3 (assuming Ganache)
-// Replace your current contract initialization with:
-// const healthRecords = new web3.eth.Contract(
-//     [
-//         {
-//             "constant": false,
-//             "inputs": [{"name": "ipfsHash", "type": "string"}],
-//             "name": "uploadRecord",
-//             "outputs": [],
-//             "payable": false,
-//             "stateMutability": "nonpayable",
-//             "type": "function"
-//         },
-//         // Include other functions as needed
-//     ],
-//     "0x6A6e4EcE25d4C78F7995467B9dE32A1a2493FA60"
-// );
-
-healthRecords.setProvider(web3.currentProvider);
-
-async function getContractInstance() {
-    try {
-        const accounts = await web3.eth.getAccounts();
-        // healthRecords is already initialized as a web3.eth.Contract
-        return { 
-            instance: healthRecords, 
-            defaultAccount: accounts[0] 
-        };
-    } catch (err) {
-        console.error("Contract error:", err);
-        throw err;
-    }
-}
 // Initialize Firebase Admin
 const responseStore = {};
 admin.initializeApp({
@@ -85,7 +28,6 @@ async function getDeviceToken(phone) {
             `SELECT device_token from user_devices where phone_number = ?`,
             [phone]
         );
-        console.log(db_response[0])
         return db_response[0][0].device_token;
     } catch (err) {
         console.error('Error fetching device token:', err);
@@ -93,77 +35,6 @@ async function getDeviceToken(phone) {
     }
 }
 
-app.post("/testtest", async (req, res) => {
-    try {
-        // 1. First convert the document ID to bytes32
-        const documentId = "12vw"; // Your document identifier
-        const bytes32Id = web3.utils.keccak256(documentId);
-        
-        // 2. Prepare transaction parameters
-        const tx = await contract.methods.uploadDocument(
-            bytes32Id, // Must be bytes32 (keccak256 hash)
-            "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco", // IPFS hash
-            "medical" // Document type
-        ).send({
-            from: "0x7d0389cA1Ac9f572F3D5a1364D53Df3D69cf1FBF", // Sender address
-            gas: 500000
-        });
-        
-        console.log("Transaction hash:", tx.transactionHash);
-        res.json({
-            success: true,
-            txHash: tx.transactionHash,
-            documentId: bytes32Id
-        });
-        
-    } catch (error) {
-        console.error("Transaction failed:", error);
-        res.status(500).json({
-            error: "Upload failed",
-            details: error.message,
-            fullError: error // Remove in production
-        });
-    }
-});
-app.post('/upload-record', async (req, res) => {
-    console.log(healthRecords.methods.uploadRecord("QmTest").encodeABI());
-    try {
-        const { ipfsHash, senderAddress } = req.body;
-        
-        // Verify sender is unlocked
-        const accounts = await web3.eth.getAccounts();
-        if (!accounts.includes(senderAddress)) {
-            return res.status(400).json({ error: "Sender address not available" });
-        }
-
-        // Manually encode the transaction
-        const encodedTx = healthRecords.methods.uploadRecord(ipfsHash)
-            .encodeABI();
-        
-        const tx = {
-            from: senderAddress,
-            to: healthRecords.options.address,
-            gas: 300000,
-            data: encodedTx
-        };
-
-        const txReceipt = await web3.eth.sendTransaction(tx);
-        
-        res.json({
-            success: true,
-            txHash: txReceipt.transactionHash
-        });
-    } catch (err) {
-        console.error('Final error:', err);
-        res.status(500).json({
-            error: "Transaction failed",
-            details: err.message
-        });
-    }
-});
-app.get("/test",(req,res)=>{
-    res.json({"HI":"HI"})
-})
 app.post('/notification-response', async (req, res) => {
     try {
         const { requestId, response } = req.body;
@@ -193,13 +64,11 @@ function generateUniqueId() {
 app.post('/hospital', async (req, res) => {
     try {
         const data = req.body;
-        console.log(data)
         if (!data.PhoneNumber) {
             return res.status(400).json({ error: 'PhoneNumber is required' });
         }
 
         const token = await getDeviceToken(data.PhoneNumber);
-        console.log(token)
         const requestId = generateUniqueId();
         
         const message = {
@@ -276,30 +145,12 @@ const storage1 = multer.diskStorage({
       cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-      // Safely handle missing phoneNumber
-      const phone = req.body?.phoneNumber?.replace(/\D/g, '') || 'unknown';
+      const phone = req.body.phoneNumber.replace(/\D/g, '') || 'unknown';
       const safeFilename = `${phone}-${Date.now()}${path.extname(file.originalname)}`;
       cb(null, safeFilename);
     }
   });
   
-  app.post("/emergency",async (req,res)=>{
-    const message = {
-        notification: {
-            title: "Permission Request",
-            body: "C1234"
-        },
-        data: {
-            requestId: requestId.toString(),
-            phoneNumber: data.PhoneNumber.toString(),
-        },
-        token: token
-    };
-
-    await admin.messaging().send(message);
-    
-    res.json("HI");
-})
   const upload1 = multer({
     storage: storage1,
     fileFilter: (req, file, cb) => {
@@ -316,9 +167,7 @@ const storage1 = multer.diskStorage({
   
   // Modified hospital/upload endpoint with notification and response waiting
 app.post("/hospital/upload", upload1.single('pdf'), async (req, res) => {
-    console.log(req.body)
     try {
-        
         // Validate phone number
         const phoneNumber = req.body.phoneNumber?.replace(/\D/g, '');
         if (!phoneNumber || phoneNumber.length < 10) {
@@ -511,53 +360,32 @@ app.get('/', async (req, res) => {
     }
 });
 
-
-
-app.get('/patient-record/:address', async (req, res) => {
-    try {
-      const { address } = req.params;
-      const { instance } = await getContractInstance();
-      
-      const record = await instance.getPatientRecord(address);
-      res.json({ record });
-    } catch (err) {
-      res.status(403).json({ 
-        error: "Access denied or record not found",
-        details: err.message 
-      });
-    }
-  });
-
 app.post("/signup", async (req, res) => {
-    console.log("GOT SIGNUP")
     try {
-      const data = req.body;
-      const { deviceToken: newToken } = req.body;
-      
-      if (!newToken) {
-        return res.status(400).json({ error: "Device token is required" });
-      }
-      
-      // Get contract instance
-      const { instance } = await getContractInstance();
-      deviceToken = newToken;
-      
-      const db_response = await pool.query(
-        `INSERT INTO user_devices (phone_number, contract_address, device_token) 
-         VALUES (?, ?, ?)`,
-        [data.phone, "XxxxX", deviceToken] // Store actual contract address
-      );
-      
-      res.json({ 
-        status: "success",
-        contractAddress: instance.address,
-        message: "User registered with smart contract"
-      });
+        const data = req.body;
+        const { deviceToken: newToken } = req.body;
+        
+        if (!newToken) {
+            return res.status(400).json({ error: "Device token is required" });
+        }
+        deviceToken = newToken;
+        
+        const db_response = await pool.query(
+            `INSERT INTO user_devices (phone_number, contract_address, device_token) 
+             VALUES (?, ?, ?)`,
+            [data.PhoneNumber, '0xafaefaefae', deviceToken]
+        );
+        
+        res.json({ 
+            status: "success",
+            message: "User data received",
+            receivedData: data 
+        });
     } catch (error) {
-      console.error("Signup error:", error);
-      res.status(400).json({ error: "Bad request" });
+        console.error("Signup error:", error);
+        res.status(400).json({ error: "Bad request" });
     }
-  });
+});
 
 app.post("/store", async (req, res) => {
     try {

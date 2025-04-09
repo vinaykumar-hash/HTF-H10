@@ -2,7 +2,7 @@ const express = require('express');
 const admin = require('firebase-admin');
 const app = express();
 const port = 3000;
-const serviceAccount = require('./mito-42b72-firebase-adminsdk-fbsvc-254edc9def.json');
+const serviceAccount = require('./mito-42b72-firebase-adminsdk-fbsvc-d867978254.json');
 const pool = require('./database/db_connect');
 const cors = require('cors');
 const multer = require('multer');
@@ -85,7 +85,6 @@ async function getDeviceToken(phone) {
             `SELECT device_token from user_devices where phone_number = ?`,
             [phone]
         );
-        console.log(db_response[0])
         return db_response[0][0].device_token;
     } catch (err) {
         console.error('Error fetching device token:', err);
@@ -276,30 +275,12 @@ const storage1 = multer.diskStorage({
       cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-      // Safely handle missing phoneNumber
-      const phone = req.body?.phoneNumber?.replace(/\D/g, '') || 'unknown';
+      const phone = req.body.phoneNumber.replace(/\D/g, '') || 'unknown';
       const safeFilename = `${phone}-${Date.now()}${path.extname(file.originalname)}`;
       cb(null, safeFilename);
     }
   });
   
-  app.post("/emergency",async (req,res)=>{
-    const message = {
-        notification: {
-            title: "Permission Request",
-            body: "C1234"
-        },
-        data: {
-            requestId: requestId.toString(),
-            phoneNumber: data.PhoneNumber.toString(),
-        },
-        token: token
-    };
-
-    await admin.messaging().send(message);
-    
-    res.json("HI");
-})
   const upload1 = multer({
     storage: storage1,
     fileFilter: (req, file, cb) => {
@@ -316,9 +297,7 @@ const storage1 = multer.diskStorage({
   
   // Modified hospital/upload endpoint with notification and response waiting
 app.post("/hospital/upload", upload1.single('pdf'), async (req, res) => {
-    console.log(req.body)
     try {
-        
         // Validate phone number
         const phoneNumber = req.body.phoneNumber?.replace(/\D/g, '');
         if (!phoneNumber || phoneNumber.length < 10) {
@@ -511,7 +490,10 @@ app.get('/', async (req, res) => {
     }
 });
 
-
+app.post("/emergency",(req,res)=>{
+    console.log("GOT REQ")
+    res.json("HI");
+})
 
 app.get('/patient-record/:address', async (req, res) => {
     try {
@@ -528,37 +510,48 @@ app.get('/patient-record/:address', async (req, res) => {
     }
   });
 
-app.post("/signup", async (req, res) => {
-    console.log("GOT SIGNUP")
+  app.post("/signup", async (req, res) => {
     try {
-      const data = req.body;
-      const { deviceToken: newToken } = req.body;
-      
-      if (!newToken) {
-        return res.status(400).json({ error: "Device token is required" });
-      }
-      
-      // Get contract instance
-      const { instance } = await getContractInstance();
-      deviceToken = newToken;
-      
-      const db_response = await pool.query(
-        `INSERT INTO user_devices (phone_number, contract_address, device_token) 
-         VALUES (?, ?, ?)`,
-        [data.phone, "XxxxX", deviceToken] // Store actual contract address
-      );
-      
-      res.json({ 
-        status: "success",
-        contractAddress: instance.address,
-        message: "User registered with smart contract"
-      });
+        const { phone, deviceToken: newToken, userName } = req.body;
+        
+        // Get user's Ethereum address
+        const accounts = await web3.eth.getAccounts();
+        const userAddress = accounts[0]; // In production, use wallet connection
+        
+        // Deploy new contract directly
+        const userContract = new web3.eth.Contract(MedicalJSON.abi);
+        const deployTx = userContract.deploy({
+            data: MedicalJSON.bytecode,
+            arguments: [userName]
+        });
+        
+        const gas = await deployTx.estimateGas();
+        const deployedContract = await deployTx.send({
+            from: "0x7d0389cA1Ac9f572F3D5a1364D53Df3D69cf1FBF",
+            gas
+        });
+        
+        // Store in database
+        await pool.query(
+            `INSERT INTO user_devices (phone_number, contract_address, device_token) 
+             VALUES (?, ?, ?)`,
+            [phone, deployedContract.options.address, newToken]
+        );
+        
+        res.json({ 
+            status: "success",
+            userContractAddress: deployedContract.options.address,
+            txHash: deployedContract.transactionHash
+        });
+        
     } catch (error) {
-      console.error("Signup error:", error);
-      res.status(400).json({ error: "Bad request" });
+        console.error("Signup error:", error);
+        res.status(500).json({ 
+            error: "Signup failed",
+            details: error.message 
+        });
     }
-  });
-
+});
 app.post("/store", async (req, res) => {
     try {
         const data = req.body;
